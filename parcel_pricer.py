@@ -18,7 +18,7 @@ class OrderResult:
     items: List[ParcelResult]
     total_cost: float
 
-def calculate_order(parcels: List[Parcel]) -> OrderResult:
+def calculate_order(parcels: List[Parcel], speedy_shipping: bool = False) -> OrderResult:
     items = []
     total_cost = 0.0
     
@@ -40,5 +40,9 @@ def calculate_order(parcels: List[Parcel]) -> OrderResult:
             
         items.append(ParcelResult(parcel_type=parcel_type, cost=cost))
         total_cost += cost
+        
+    if speedy_shipping:
+        items.append(ParcelResult(parcel_type="Speedy Shipping", cost=total_cost))
+        total_cost *= 2
         
     return OrderResult(items=items, total_cost=total_cost)

@@ -71,3 +71,46 @@ def test_mixed_order():
     assert result.items[3].parcel_type == "XL"
     
     assert result.total_cost == 3.0 + 8.0 + 15.0 + 25.0
+
+def test_speedy_shipping_off_default():
+    parcel = Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=1.0)
+    result = calculate_order([parcel])
+    assert len(result.items) == 1
+    assert result.items[0].parcel_type == "Small"
+    assert result.total_cost == 3.0
+
+def test_speedy_shipping_single_parcel():
+    parcel = Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=1.0)
+    result = calculate_order([parcel], speedy_shipping=True)
+    
+    assert len(result.items) == 2
+    assert result.items[0].parcel_type == "Small"
+    assert result.items[0].cost == 3.0
+    
+    assert result.items[1].parcel_type == "Speedy Shipping"
+    assert result.items[1].cost == 3.0
+    
+    assert result.total_cost == 6.0
+
+def test_speedy_shipping_mixed_order():
+    parcels = [
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=1.0),      # Small ($3)
+        Parcel(width=10.0, height=10.0, depth=10.0, weight_kg=1.0),   # Medium ($8)
+    ]
+    result = calculate_order(parcels, speedy_shipping=True)
+    
+    assert len(result.items) == 3
+    
+    # Original parcels unchanged
+    assert result.items[0].parcel_type == "Small"
+    assert result.items[0].cost == 3.0
+    
+    assert result.items[1].parcel_type == "Medium"
+    assert result.items[1].cost == 8.0
+    
+    # Speedy shipping line item
+    assert result.items[2].parcel_type == "Speedy Shipping"
+    assert result.items[2].cost == 11.0  # 3.0 + 8.0
+    
+    # Total doubled
+    assert result.total_cost == 22.0
