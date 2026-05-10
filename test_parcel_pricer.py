@@ -162,3 +162,63 @@ def test_mixed_order_with_weights():
     
     # Total doubled
     assert result.total_cost == subtotal * 2
+
+def test_heavy_cheaper_than_size_based():
+    # Small parcel, base $3, weight limit 1kg. Actual weight 30kg.
+    # Size cost: 3 + 29*2 = 61.
+    # Heavy cost: 50 + 0 = 50.
+    # Heavy should be chosen.
+    parcel = Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=30.0)
+    result = calculate_order([parcel])
+    assert result.items[0].parcel_type == "Heavy"
+    assert result.items[0].cost == 50.0
+
+def test_size_based_cheaper_than_heavy():
+    # XL parcel, base $25, limit 10kg. Actual weight 20kg.
+    # Size cost: 25 + 10*2 = 45.
+    # Heavy cost: 50 + 0 = 50.
+    # Size-based should be chosen.
+    parcel = Parcel(width=100.0, height=100.0, depth=100.0, weight_kg=20.0)
+    result = calculate_order([parcel])
+    assert result.items[0].parcel_type == "XL"
+    assert result.items[0].cost == 45.0
+
+def test_heavy_exactly_50kg_no_surcharge():
+    # Small parcel, 50kg.
+    # Size cost: 3 + 49*2 = 101.
+    # Heavy cost: 50.
+    # Heavy should be chosen, exactly $50.
+    parcel = Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=50.0)
+    result = calculate_order([parcel])
+    assert result.items[0].parcel_type == "Heavy"
+    assert result.items[0].cost == 50.0
+
+def test_heavy_over_50kg():
+    # Small parcel, 55kg.
+    # Size cost: 3 + 54*2 = 111.
+    # Heavy cost: 50 + 5*1 = 55.
+    # Heavy should be chosen, cost $55.
+    parcel = Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=55.0)
+    result = calculate_order([parcel])
+    assert result.items[0].parcel_type == "Heavy"
+    assert result.items[0].cost == 55.0
+
+def test_mixed_order_heavy_and_size_based():
+    parcels = [
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=1.0),       # Small, 1kg: Size cost $3, Heavy $50 -> Small $3
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=40.0),      # Small, 40kg: Size cost $81, Heavy $50 -> Heavy $50
+        Parcel(width=100.0, height=100.0, depth=100.0, weight_kg=15.0) # XL, 15kg: Size cost $35, Heavy $50 -> XL $35
+    ]
+    result = calculate_order(parcels)
+    
+    assert len(result.items) == 3
+    assert result.items[0].parcel_type == "Small"
+    assert result.items[0].cost == 3.0
+    
+    assert result.items[1].parcel_type == "Heavy"
+    assert result.items[1].cost == 50.0
+    
+    assert result.items[2].parcel_type == "XL"
+    assert result.items[2].cost == 35.0
+    
+    assert result.total_cost == 3.0 + 50.0 + 35.0

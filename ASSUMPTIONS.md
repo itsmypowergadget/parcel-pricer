@@ -22,3 +22,7 @@
      (e.g. 1.9kg over = 1kg surcharge, not 2kg).
    - Parcels exactly at the weight limit incur no surcharge.
    - Surcharge applies based on the parcel's size classification, not its weight.
+
+7. **Heavy Parcels:**
+   - Similar to weight surcharges, the per-kg penalty over 50kg for Heavy parcels rounds down to the nearest whole kg.
+   - When the size-based cost and the Heavy cost are exactly equal, the size-based classification is preferred to maintain specificity (e.g. an XL parcel with 10kg limit vs 50kg limit).
