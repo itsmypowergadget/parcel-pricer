@@ -222,3 +222,104 @@ def test_mixed_order_heavy_and_size_based():
     assert result.items[2].cost == 35.0
     
     assert result.total_cost == 3.0 + 50.0 + 35.0
+
+def test_discount_4_small_parcels():
+    # 4 small parcels, cost $3 each
+    parcels = [Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=1.0) for _ in range(4)]
+    result = calculate_order(parcels)
+    assert len(result.items) == 5 # 4 items + 1 discount
+    assert result.items[-1].parcel_type == "Small Mania Discount"
+    assert result.items[-1].cost == -3.0
+    assert result.total_cost == 12.0 - 3.0
+
+def test_discount_3_medium_parcels():
+    # 3 medium parcels, cost $8 each
+    parcels = [Parcel(width=10.0, height=10.0, depth=10.0, weight_kg=1.0) for _ in range(3)]
+    result = calculate_order(parcels)
+    assert len(result.items) == 4
+    assert result.items[-1].parcel_type == "Medium Mania Discount"
+    assert result.items[-1].cost == -8.0
+    assert result.total_cost == 24.0 - 8.0
+
+def test_discount_5_mixed_parcels():
+    # 5 different parcels.
+    parcels = [
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=1.0),      # Small ($3)
+        Parcel(width=10.0, height=10.0, depth=10.0, weight_kg=1.0),   # Medium ($8)
+        Parcel(width=50.0, height=50.0, depth=50.0, weight_kg=1.0),   # Large ($15)
+        Parcel(width=100.0, height=100.0, depth=100.0, weight_kg=1.0),# XL ($25)
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=50.0)      # Heavy ($50)
+    ]
+    result = calculate_order(parcels)
+    assert len(result.items) == 6
+    assert result.items[-1].parcel_type == "Mixed Mania Discount"
+    assert result.items[-1].cost == -3.0 # The cheapest is the Small ($3)
+    assert result.total_cost == 3.0 + 8.0 + 15.0 + 25.0 + 50.0 - 3.0
+
+def test_discount_overlap_small_mixed():
+    # 4 expensive Small parcels + 1 cheap Small parcel
+    parcels = [
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=24.0), # Small, cost $49
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=24.0), # $49
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=24.0), # $49
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=24.0), # $49
+        Parcel(width=1.0, height=1.0, depth=1.0, weight_kg=1.0),  # $3
+    ]
+    result = calculate_order(parcels)
+    assert len(result.items) == 6
+    # Choosing Small Mania uses the 4 expensive ones, freeing up $49.
+    # Choosing Mixed Mania uses all 5, freeing up the cheapest ($3).
+    # Expected is Small Mania.
+    assert result.items[-1].parcel_type == "Small Mania Discount"
+    assert result.items[-1].cost == -49.0
+    
+def test_discount_6_medium_parcels():
+    # 6 medium parcels ($8 each) -> 2 discounts
+    parcels = [Parcel(width=10.0, height=10.0, depth=10.0, weight_kg=1.0) for _ in range(6)]
+    result = calculate_order(parcels)
+    assert len(result.items) == 8
+    discounts = [item for item in result.items if "Discount" in item.parcel_type]
+    assert len(discounts) == 2
+    assert all(d.parcel_type == "Medium Mania Discount" and d.cost == -8.0 for d in discounts)
+    assert result.total_cost == (8.0 * 6) - (8.0 * 2)
+
+def test_speedy_shipping_with_discounts():
+    # 3 medium parcels ($8 each) + speedy shipping
+    parcels = [Parcel(width=10.0, height=10.0, depth=10.0, weight_kg=1.0) for _ in range(3)]
+    result = calculate_order(parcels, speedy_shipping=True)
+    assert len(result.items) == 5
+    assert result.items[-2].parcel_type == "Medium Mania Discount"
+    assert result.items[-2].cost == -8.0
+    
+    assert result.items[-1].parcel_type == "Speedy Shipping"
+    # Subtotal = 24 - 8 = 16. Speedy cost = 16. Total = 32.
+    assert result.items[-1].cost == 16.0
+    assert result.total_cost == 32.0
+
+def test_specific_overlap_small_and_medium():
+    # 4 small parcels (each 5x5x5cm, 0.5kg) = 4 * $3 = $12
+    # 1 medium parcel (20x20x20cm, 1kg) = $8
+    # User Expects total saving $11 ($9 total)
+    parcels = [
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=0.5), # Small $3
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=0.5), # Small $3
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=0.5), # Small $3
+        Parcel(width=5.0, height=5.0, depth=5.0, weight_kg=0.5), # Small $3
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=1.0) # Medium $8
+    ]
+    result = calculate_order(parcels)
+    assert result.total_cost == 17.0
+
+def test_specific_6_medium_weight_difference():
+    # 3 medium parcels (20x20x20cm, 1kg) = $8 each
+    # 3 medium parcels (20x20x20cm, 4kg) = $8 + $2 = $10 each
+    parcels = [
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=1.0), # Medium $8
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=1.0), # Medium $8
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=1.0), # Medium $8
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=4.0), # Medium $10
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=4.0), # Medium $10
+        Parcel(width=20.0, height=20.0, depth=20.0, weight_kg=4.0)  # Medium $10
+    ]
+    result = calculate_order(parcels)
+    assert result.total_cost == 36.0
