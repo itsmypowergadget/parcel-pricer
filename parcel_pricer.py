@@ -28,16 +28,24 @@ def calculate_order(parcels: List[Parcel], speedy_shipping: bool = False) -> Ord
         if max_dim < 10:
             parcel_type = "Small"
             cost = 3.0
+            weight_limit = 1.0
         elif max_dim < 50:
             parcel_type = "Medium"
             cost = 8.0
+            weight_limit = 3.0
         elif max_dim < 100:
             parcel_type = "Large"
             cost = 15.0
+            weight_limit = 6.0
         else:
             parcel_type = "XL"
             cost = 25.0
+            weight_limit = 10.0
             
+        overweight = max(0.0, parcel.weight_kg - weight_limit)
+        surcharge = int(overweight) * 2.0
+        cost += surcharge
+        
         items.append(ParcelResult(parcel_type=parcel_type, cost=cost))
         total_cost += cost
         

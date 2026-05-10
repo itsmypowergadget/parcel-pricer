@@ -16,3 +16,9 @@
 
 5. **Future Considerations:**
    - The codebase is structured with clear iterations through the parcels. Extending `calculate_order` to support weight-based surcharges or speedy shipping can easily be added as subsequent operations or parameters. Discounter modules could also act upon the resulting `OrderResult`.
+
+6. **Weight Surcharges:**
+   - Weight surcharge is calculated on whole kg over the limit, rounded down
+     (e.g. 1.9kg over = 1kg surcharge, not 2kg).
+   - Parcels exactly at the weight limit incur no surcharge.
+   - Surcharge applies based on the parcel's size classification, not its weight.
